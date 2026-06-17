@@ -1,0 +1,6 @@
+{
+  "name": "mock-smoke",
+  "command": ["python3", "examples/mock_experiment.py"],
+  "metric_keys": ["val_bpb", "loss", "tokens"],
+  "timeout_seconds": 30
+}
