@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "limes-autoresearch"
+version = "0.1.0"
+description = "Unified AutoResearch scaffold for Limes Labs research workflows"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Limes Labs" }]
+dependencies = []
+
+[project.scripts]
+autoresearch-limes = "autoresearch_limes.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["autoresearch_limes*"]
