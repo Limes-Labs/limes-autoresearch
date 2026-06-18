@@ -4,10 +4,13 @@ import argparse
 import json
 from pathlib import Path
 
+from .adapters import build_adapter_config
 from .backends import detect_backends
 from .config import load_config
 from .ledger import read_ledger
+from .report import generate_result_card, load_result_artifact
 from .runner import run_experiment
+from .spec import load_research_spec
 
 
 def main() -> int:
@@ -23,6 +26,21 @@ def main() -> int:
     ledger_parser = subparsers.add_parser("ledger", help="Print ledger records")
     ledger_parser.add_argument("--ledger", type=Path, default=Path("runs/ledger.jsonl"))
 
+    spec_parser = subparsers.add_parser("validate-spec", help="Validate a research spec")
+    spec_parser.add_argument("spec", type=Path)
+
+    adapter_parser = subparsers.add_parser(
+        "adapter-template", help="Print a lightweight Limes repo experiment config"
+    )
+    adapter_parser.add_argument("adapter")
+    adapter_parser.add_argument("--experiment", default="smoke")
+
+    report_parser = subparsers.add_parser(
+        "report-card", help="Generate a markdown result card from a result artifact"
+    )
+    report_parser.add_argument("artifact", type=Path)
+    report_parser.add_argument("--out", type=Path)
+
     args = parser.parse_args()
 
     if args.command_name == "detect-backends":
@@ -31,6 +49,22 @@ def main() -> int:
 
     if args.command_name == "ledger":
         print(json.dumps(read_ledger(args.ledger), indent=2, sort_keys=True))
+        return 0
+
+    if args.command_name == "validate-spec":
+        spec = load_research_spec(args.spec)
+        print(json.dumps(spec.summary(), indent=2, sort_keys=True))
+        return 0
+
+    if args.command_name == "adapter-template":
+        config = build_adapter_config(args.adapter, args.experiment)
+        print(json.dumps(config, indent=2, sort_keys=True))
+        return 0
+
+    if args.command_name == "report-card":
+        record = load_result_artifact(args.artifact)
+        card = generate_result_card(record, args.out)
+        print(str(args.out) if args.out is not None else card)
         return 0
 
     if args.command_name == "run":

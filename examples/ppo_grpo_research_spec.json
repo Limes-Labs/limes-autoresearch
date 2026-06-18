@@ -1,0 +1,35 @@
+{
+  "id": "ppo-grpo-credit-assignment-smoke",
+  "objective": "Test whether critic-style credit assignment gives useful heldout signal on variable-length toy traces.",
+  "hypothesis": "A critic-style baseline should use more temporal structure than group-relative scoring when traces vary in length.",
+  "method": "Run matched PPO-style and group-relative toy runs with fixed seeds, fixed trace generator settings, and a locked heldout split.",
+  "baselines": ["random-policy", "group-relative-mean-baseline"],
+  "metrics": [
+    {
+      "name": "heldout_reward",
+      "direction": "higher",
+      "primary": true
+    },
+    {
+      "name": "critic_loss",
+      "direction": "lower"
+    }
+  ],
+  "costs": {
+    "max_runtime_minutes": 30,
+    "max_budget_eur": 2,
+    "hardware": "cpu"
+  },
+  "data_boundaries": {
+    "train": "toy traces generated from seeds 1-20",
+    "validation": "toy traces generated from seeds 21-25",
+    "heldout": "locked toy traces generated from seeds 100-110"
+  },
+  "promotion_gate": {
+    "metric": "heldout_reward",
+    "threshold": 0.03,
+    "direction": "higher",
+    "requires_replay": true
+  },
+  "expected_artifact": "reports/ppo-grpo-credit-assignment-smoke.md"
+}

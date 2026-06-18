@@ -8,6 +8,7 @@ This repository does not claim to autonomously discover frontier architectures. 
 
 - `autoresearch_limes/` - dependency-free runner, config loader, backend detector, and JSONL ledger helpers.
 - `examples/` - a tiny mock experiment that runs without GPU dependencies.
+- `docs/templates/` - public research-question, no-cheating, and result-artifact templates.
 - `tests/` - unit coverage for config loading, metric parsing, backend detection, and runner behavior.
 - `docs/architecture.md` - planner, experiment runner, evaluator, ledger, and backend boundaries.
 - `docs/research-agenda.md` - how this connects to Limes research tracks such as nanoGPT, EuroBench, Parameter Golf, PPO, and GRPO.
@@ -25,6 +26,7 @@ python3 -m unittest discover -s tests
 python3 -m autoresearch_limes detect-backends
 python3 -m autoresearch_limes run examples/mock_config.json --ledger runs/ledger.jsonl
 python3 -m autoresearch_limes ledger --ledger runs/ledger.jsonl
+python3 -m autoresearch_limes report-card runs/ledger.jsonl --out runs/mock-result-card.md
 ```
 
 The smoke experiment prints simple metrics, the runner captures them, and the ledger appends a JSONL record under `runs/ledger.jsonl`.
@@ -69,6 +71,40 @@ No ML framework is required for the default smoke test.
 6. Promote only changes that survive replay and review.
 
 That pattern is intentionally compatible with Limes nanoGPT experiments, Apple Silicon local trials, optional MLX ports, and later PPO/GRPO-based proposal policies.
+
+## Research Workflow
+
+Start by writing a research-question spec. The schema is intentionally explicit about the scientific boundary of the run: objective, hypothesis, method, baselines, metrics, costs, train/validation/heldout splits, promotion gate, and expected artifact.
+
+```bash
+python3 -m autoresearch_limes validate-spec examples/ppo_grpo_research_spec.json
+```
+
+Use `docs/templates/no_cheating_protocol.md` when opening a public experiment issue or PR. The template asks contributors to freeze the metric, name data boundaries, account for compute and teacher/critic/selector costs, and keep negative or diagnostic runs in the ledger.
+
+For existing Limes repos, generate a lightweight command template and then replace the TODO placeholders with the real repo command:
+
+```bash
+python3 -m autoresearch_limes adapter-template eurobench --experiment eu-law-v04
+python3 -m autoresearch_limes adapter-template limes-parameter-golf --experiment tiny-transformer
+python3 -m autoresearch_limes adapter-template limes-nanogpt --experiment grpo-smoke
+```
+
+After a run, turn the JSONL ledger or a JSON result artifact into a markdown result card:
+
+```bash
+python3 -m autoresearch_limes report-card runs/ledger.jsonl --out reports/my-result-card.md
+```
+
+Result cards use the status labels `candidate`, `negative`, `mixed`, `diagnostic`, and `verified`. `verified` should be reserved for replayed runs that satisfy the locked promotion gate.
+
+### Example: PPO/GRPO Toy Study
+
+1. Copy `examples/ppo_grpo_research_spec.json` and update the split descriptions, cost cap, and promotion threshold.
+2. Validate the spec with `validate-spec`.
+3. Generate a repo adapter if the run targets EuroBench, Parameter Golf, or nanoGPT, or write a normal experiment config for a toy PPO/GRPO command.
+4. Run the experiment into a JSONL ledger.
+5. Generate a result card and publish the spec, ledger snippet, and card together.
 
 ## Attribution
 

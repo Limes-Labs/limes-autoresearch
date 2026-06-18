@@ -1,0 +1,19 @@
+{
+  "experiment": "short-stable-experiment-id",
+  "status": "success",
+  "result_label": "candidate",
+  "metrics": {
+    "primary_metric": 0.0
+  },
+  "duration_seconds": 0.0,
+  "backend": {
+    "preferred": "cpu"
+  },
+  "promotion_gate": {
+    "metric": "primary_metric",
+    "direction": "higher",
+    "threshold": 0.01,
+    "passed": false
+  },
+  "artifact": "runs/short-stable-experiment-id.json"
+}
