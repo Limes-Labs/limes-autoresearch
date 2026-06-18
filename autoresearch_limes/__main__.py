@@ -8,6 +8,7 @@ from .adapters import build_adapter_config
 from .backends import detect_backends
 from .config import load_config
 from .ledger import read_ledger
+from .protocol import init_protocol_task, record_iteration
 from .report import generate_result_card, load_result_artifact
 from .runner import run_experiment
 from .spec import load_research_spec
@@ -42,6 +43,20 @@ def main() -> int:
     report_parser.add_argument("--spec", type=Path)
     report_parser.add_argument("--out", type=Path)
 
+    init_task_parser = subparsers.add_parser(
+        "init-task", help="Initialize persistent protocol state for a research spec"
+    )
+    init_task_parser.add_argument("spec", type=Path)
+    init_task_parser.add_argument("--task-dir", type=Path, required=True)
+
+    record_parser = subparsers.add_parser(
+        "record-iteration", help="Append an iteration to a protocol task"
+    )
+    record_parser.add_argument("task_dir", type=Path)
+    record_parser.add_argument("--direction", required=True)
+    record_parser.add_argument("--finding", action="append", default=[])
+    record_parser.add_argument("--metric", action="append", default=[])
+
     args = parser.parse_args()
 
     if args.command_name == "detect-backends":
@@ -69,6 +84,21 @@ def main() -> int:
         print(str(args.out) if args.out is not None else card)
         return 0
 
+    if args.command_name == "init-task":
+        progress = init_protocol_task(load_research_spec(args.spec), args.task_dir)
+        print(json.dumps(progress, indent=2, sort_keys=True))
+        return 0
+
+    if args.command_name == "record-iteration":
+        progress = record_iteration(
+            args.task_dir,
+            direction=args.direction,
+            findings=args.finding,
+            metrics=_parse_metric_args(args.metric),
+        )
+        print(json.dumps(progress, indent=2, sort_keys=True))
+        return 0
+
     if args.command_name == "run":
         result = run_experiment(load_config(args.config), args.ledger)
         print(
@@ -87,6 +117,16 @@ def main() -> int:
         return 0 if result.status == "success" else 1
 
     raise AssertionError(f"Unhandled command: {args.command_name}")
+
+
+def _parse_metric_args(values: list[str]) -> dict[str, float]:
+    metrics = {}
+    for value in values:
+        key, separator, raw = value.partition("=")
+        if not separator or not key.strip():
+            raise ValueError(f"Metric must be key=value: {value}")
+        metrics[key.strip()] = float(raw)
+    return metrics
 
 
 if __name__ == "__main__":

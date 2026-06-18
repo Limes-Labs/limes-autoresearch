@@ -164,6 +164,75 @@ class CliTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertIn("Gate: passed", out.read_text(encoding="utf-8"))
 
+    def test_protocol_task_cli_initializes_and_records_iteration(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            spec_path = Path(tmp) / "spec.json"
+            task_dir = Path(tmp) / "task"
+            spec_path.write_text(
+                json.dumps(
+                    {
+                        "id": "cli-loop",
+                        "objective": "Track a long-running loop.",
+                        "hypothesis": "Persistent state prevents silent stalls.",
+                        "method": "Record one iteration at a time.",
+                        "baselines": ["manual notes"],
+                        "metrics": [{"name": "score", "direction": "higher"}],
+                        "costs": {"max_runtime_minutes": 10},
+                        "data_boundaries": {
+                            "train": "proposal notes",
+                            "validation": "dev tasks",
+                            "heldout": "locked tasks",
+                        },
+                        "promotion_gate": {
+                            "metric": "score",
+                            "threshold": 0.5,
+                            "direction": "higher",
+                        },
+                        "expected_artifact": "reports/cli-loop.md",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            init_completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "autoresearch_limes",
+                    "init-task",
+                    str(spec_path),
+                    "--task-dir",
+                    str(task_dir),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            record_completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "autoresearch_limes",
+                    "record-iteration",
+                    str(task_dir),
+                    "--direction",
+                    "try stricter prompt",
+                    "--finding",
+                    "score improved on dev",
+                    "--metric",
+                    "score=0.6",
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(init_completed.returncode, 0, init_completed.stderr)
+            self.assertEqual(record_completed.returncode, 0, record_completed.stderr)
+            payload = json.loads(record_completed.stdout)
+            self.assertEqual(payload["iteration"], 1)
+            self.assertEqual(payload["status"], "active")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,6 +27,7 @@ python3 -m autoresearch_limes detect-backends
 python3 -m autoresearch_limes run examples/mock_config.json --ledger runs/ledger.jsonl
 python3 -m autoresearch_limes ledger --ledger runs/ledger.jsonl
 python3 -m autoresearch_limes report-card runs/ledger.jsonl --out runs/mock-result-card.md
+python3 -m autoresearch_limes init-task examples/ppo_grpo_research_spec.json --task-dir runs/tasks/ppo-grpo-smoke
 ```
 
 The smoke experiment prints simple metrics, the runner captures them, and the ledger appends a JSONL record under `runs/ledger.jsonl`.
@@ -98,13 +99,28 @@ python3 -m autoresearch_limes report-card runs/ledger.jsonl --spec examples/ppo_
 
 Result cards use the status labels `candidate`, `negative`, `mixed`, `diagnostic`, and `verified`. `verified` should be reserved for replayed runs that satisfy the locked promotion gate.
 
+### Protocol Task State
+
+For longer research loops, initialize persistent task state from the same research spec:
+
+```bash
+python3 -m autoresearch_limes init-task examples/ppo_grpo_research_spec.json --task-dir runs/tasks/ppo-grpo-smoke
+python3 -m autoresearch_limes record-iteration runs/tasks/ppo-grpo-smoke \
+  --direction "try critic-shaped reward decomposition" \
+  --finding "validation traces expose delayed-credit failures" \
+  --metric heldout_reward=0.04
+```
+
+This creates `state/` and `logs/` files under the task directory, records tried directions, appends findings, and updates `stale_count`. A repeated direction is rejected. An iteration with no findings or a primary-metric regression is marked stale; two stale iterations request a structural pivot.
+
 ### Example: PPO/GRPO Toy Study
 
 1. Copy `examples/ppo_grpo_research_spec.json` and update the split descriptions, cost cap, and promotion threshold.
 2. Validate the spec with `validate-spec`.
 3. Generate a repo adapter if the run targets EuroBench, Parameter Golf, or nanoGPT, or write a normal experiment config for a toy PPO/GRPO command.
 4. Run the experiment into a JSONL ledger.
-5. Generate a spec-aware result card and publish the spec, ledger snippet, and card together.
+5. Record iteration state if the research loop continues beyond one run.
+6. Generate a spec-aware result card and publish the spec, ledger snippet, and card together.
 
 ## Attribution
 
