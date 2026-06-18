@@ -3,7 +3,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from autoresearch_limes.protocol import init_protocol_task, record_iteration
+from autoresearch_limes.protocol import (
+    init_protocol_task,
+    inspect_protocol_task,
+    patrol_protocol_tasks,
+    record_iteration,
+    touch_heartbeat,
+)
 from autoresearch_limes.spec import load_research_spec
 
 
@@ -87,6 +93,56 @@ class ProtocolStateTests(unittest.TestCase):
                 second_stale["recommended_action"],
                 "change a structural constraint before the next iteration",
             )
+
+    def test_heartbeat_and_status_report_liveness(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = load_research_spec(_write_spec(Path(tmp)))
+            task_dir = Path(tmp) / "task"
+            init_protocol_task(spec, task_dir)
+
+            heartbeat = touch_heartbeat(task_dir, source="unit-test")
+            status = inspect_protocol_task(task_dir, stale_after_seconds=3600)
+
+            self.assertEqual(heartbeat["source"], "unit-test")
+            self.assertEqual(status["experiment"], "loop-smoke")
+            self.assertFalse(status["heartbeat_stale"])
+            self.assertEqual(status["guardian_allowed_actions"], ["liveness-check", "nudge", "restart"])
+
+    def test_patrol_reports_stale_and_pivot_tasks_without_modifying_progress(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = load_research_spec(_write_spec(Path(tmp)))
+            fresh_task = Path(tmp) / "fresh"
+            pivot_task = Path(tmp) / "pivot"
+            init_protocol_task(spec, fresh_task)
+            init_protocol_task(spec, pivot_task)
+            record_iteration(
+                pivot_task,
+                direction="baseline prompt",
+                findings=["baseline established"],
+                metrics={"score": 0.72},
+            )
+            record_iteration(
+                pivot_task,
+                direction="minor wording tweak",
+                findings=[],
+                metrics={"score": 0.70},
+            )
+            record_iteration(
+                pivot_task,
+                direction="temperature tweak",
+                findings=[],
+                metrics={"score": 0.68},
+            )
+
+            before = json.loads((pivot_task / "state" / "progress.json").read_text())
+            patrol = patrol_protocol_tasks(Path(tmp), stale_after_seconds=0)
+            after = json.loads((pivot_task / "state" / "progress.json").read_text())
+
+            self.assertEqual(before, after)
+            self.assertEqual(patrol["tasks_checked"], 2)
+            self.assertEqual(patrol["attention_needed"], 2)
+            self.assertIn(str(pivot_task), patrol["task_dirs"])
+            self.assertTrue((pivot_task / "logs" / "heartbeat.jsonl").read_text())
 
 
 def _write_spec(root: Path) -> Path:

@@ -29,6 +29,14 @@ task/
 - Two stale iterations are `pivot-required`.
 - Four stale iterations are `needs-human-attention`.
 
+## Heartbeat And Patrol
+
+- `heartbeat TASK --source NAME` updates `state/heartbeat.json` and appends `logs/heartbeat.jsonl`.
+- `task-status TASK` reports progress age, heartbeat age, stall state, and recommended action.
+- `patrol-tasks ROOT` scans for `state/progress.json` files and reports tasks needing attention.
+- Guardian actions are limited to `liveness-check`, `nudge`, and `restart`.
+- Patrol may append heartbeat log observations, but it must not edit task progress, findings, or directions.
+
 ## Pivot Guidance
 
 When status becomes `pivot-required`, change a structural constraint before continuing. Examples:
@@ -40,4 +48,4 @@ When status becomes `pivot-required`, change a structural constraint before cont
 
 ## Current Scope
 
-The CLI initializes and updates the files. It does not run an autonomous watchdog or spawn agents. Future tooling can read these files without relying on chat history.
+The CLI initializes and updates the files. It does not run an autonomous watchdog or spawn agents. Future tooling can call `patrol-tasks` on a schedule without relying on chat history.

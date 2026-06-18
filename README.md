@@ -9,6 +9,7 @@ This repository does not claim to autonomously discover frontier architectures. 
 - `autoresearch_limes/` - dependency-free runner, config loader, backend detector, and JSONL ledger helpers.
 - `examples/` - a tiny mock experiment that runs without GPU dependencies.
 - `docs/templates/` - public research-question, no-cheating, and result-artifact templates.
+- `skills/limes-autoresearch/` - repo-local Codex skill template for this workflow.
 - `tests/` - unit coverage for config loading, metric parsing, backend detection, and runner behavior.
 - `docs/architecture.md` - planner, experiment runner, evaluator, ledger, and backend boundaries.
 - `docs/research-agenda.md` - how this connects to Limes research tracks such as nanoGPT, EuroBench, Parameter Golf, PPO, and GRPO.
@@ -109,9 +110,14 @@ python3 -m autoresearch_limes record-iteration runs/tasks/ppo-grpo-smoke \
   --direction "try critic-shaped reward decomposition" \
   --finding "validation traces expose delayed-credit failures" \
   --metric heldout_reward=0.04
+python3 -m autoresearch_limes heartbeat runs/tasks/ppo-grpo-smoke --source local-loop
+python3 -m autoresearch_limes task-status runs/tasks/ppo-grpo-smoke
+python3 -m autoresearch_limes patrol-tasks runs/tasks
 ```
 
 This creates `state/` and `logs/` files under the task directory, records tried directions, appends findings, and updates `stale_count`. A repeated direction is rejected. An iteration with no findings or a primary-metric regression is marked stale; two stale iterations request a structural pivot.
+
+Heartbeat and patrol commands inspect liveness and append heartbeat log entries. They report allowed guardian actions (`liveness-check`, `nudge`, `restart`) but do not launch agents or modify task progress.
 
 ### Example: PPO/GRPO Toy Study
 

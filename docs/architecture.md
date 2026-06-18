@@ -79,8 +79,11 @@ This makes overnight runs inspectable without assuming a database. A future serv
 - reject repeated directions;
 - increment `stale_count` when an iteration has no findings or the primary metric regresses;
 - request a structural pivot after two stale iterations.
+- update task heartbeats;
+- inspect one task's liveness;
+- patrol a directory of protocol tasks and report which ones need attention.
 
-This layer does not launch unattended agents or watchdogs. It gives humans, Codex threads, and future orchestrators a stable state contract.
+This layer does not launch unattended agents or watchdogs. It gives humans, Codex threads, and future orchestrators a stable state contract. Patrol output is intentionally read-only with respect to task progress: it may append heartbeat patrol logs, but it does not edit findings, directions, or progress.
 
 ### Reports
 
@@ -120,5 +123,5 @@ The detector records context; it does not force the experiment command to use a 
 - A keep/revert policy that compares against a named baseline metric.
 - A replay command that reruns the current best on a clean checkout.
 - Richer ledgers with git commit, diff summary, seed, dataset, and benchmark version.
-- A heartbeat/watchdog command that can inspect protocol state without editing task data.
+- Optional automation hooks that call `patrol-tasks` on a schedule and route attention reports.
 - HPO integration where CMA-ES, TPE, or hybrid LLM policies propose bounded parameter changes.

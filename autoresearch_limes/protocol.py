@@ -119,6 +119,85 @@ def record_iteration(
     return progress
 
 
+def touch_heartbeat(task_dir: str | Path, source: str = "heartbeat") -> dict[str, Any]:
+    root = Path(task_dir)
+    payload = {
+        "ts": _timestamp(),
+        "source": source,
+        "event": "heartbeat",
+        "guardian_allowed_actions": _guardian_allowed_actions(),
+    }
+    _write_json(root / "state" / "heartbeat.json", payload)
+    _append_iteration_log(root / "logs" / "heartbeat.jsonl", payload)
+    return payload
+
+
+def inspect_protocol_task(
+    task_dir: str | Path, stale_after_seconds: float = 7200
+) -> dict[str, Any]:
+    root = Path(task_dir)
+    progress = _read_json(root / "state" / "progress.json")
+    heartbeat_path = root / "state" / "heartbeat.json"
+    heartbeat = _read_json(heartbeat_path) if heartbeat_path.exists() else None
+    progress_age = _age_seconds(progress.get("last_seen"))
+    heartbeat_age = _age_seconds(heartbeat.get("ts")) if isinstance(heartbeat, dict) else None
+    progress_stale = progress_age is None or progress_age >= stale_after_seconds
+    heartbeat_stale = heartbeat_age is None or heartbeat_age >= stale_after_seconds
+    task_status = str(progress.get("status", "unknown"))
+    needs_attention = (
+        progress_stale
+        or heartbeat_stale
+        or task_status in {"stalled", "pivot-required", "needs-human-attention"}
+    )
+
+    return {
+        "task_dir": str(root),
+        "experiment": progress.get("experiment"),
+        "iteration": progress.get("iteration"),
+        "status": task_status,
+        "stale_count": progress.get("stale_count"),
+        "recommended_action": progress.get("recommended_action"),
+        "progress_age_seconds": progress_age,
+        "heartbeat_age_seconds": heartbeat_age,
+        "progress_stale": progress_stale,
+        "heartbeat_stale": heartbeat_stale,
+        "needs_attention": needs_attention,
+        "guardian_allowed_actions": _guardian_allowed_actions(),
+    }
+
+
+def patrol_protocol_tasks(
+    root_dir: str | Path, stale_after_seconds: float = 7200
+) -> dict[str, Any]:
+    root = Path(root_dir)
+    task_dirs = sorted({path.parent.parent for path in root.rglob("state/progress.json")})
+    statuses = [
+        inspect_protocol_task(task_dir, stale_after_seconds=stale_after_seconds)
+        for task_dir in task_dirs
+    ]
+    for status in statuses:
+        _append_iteration_log(
+            Path(status["task_dir"]) / "logs" / "heartbeat.jsonl",
+            {
+                "ts": _timestamp(),
+                "source": "patrol",
+                "event": "patrol",
+                "needs_attention": status["needs_attention"],
+                "recommended_action": status["recommended_action"],
+            },
+        )
+
+    attention = [status for status in statuses if status["needs_attention"]]
+    return {
+        "root_dir": str(root),
+        "tasks_checked": len(statuses),
+        "attention_needed": len(attention),
+        "task_dirs": [status["task_dir"] for status in statuses],
+        "attention_task_dirs": [status["task_dir"] for status in attention],
+        "tasks": statuses,
+    }
+
+
 def _stale_reasons(
     *,
     findings: list[str],
@@ -163,6 +242,22 @@ def _best_metric(current: Any, candidate: float, direction: str) -> float:
     if direction == "higher":
         return max(float(current), candidate)
     return min(float(current), candidate)
+
+
+def _guardian_allowed_actions() -> list[str]:
+    return ["liveness-check", "nudge", "restart"]
+
+
+def _age_seconds(value: Any) -> float | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        timestamp = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=UTC)
+    return (datetime.now(UTC) - timestamp).total_seconds()
 
 
 def _task_spec_markdown(spec: ResearchSpec) -> str:

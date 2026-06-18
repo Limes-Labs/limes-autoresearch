@@ -8,7 +8,13 @@ from .adapters import build_adapter_config
 from .backends import detect_backends
 from .config import load_config
 from .ledger import read_ledger
-from .protocol import init_protocol_task, record_iteration
+from .protocol import (
+    init_protocol_task,
+    inspect_protocol_task,
+    patrol_protocol_tasks,
+    record_iteration,
+    touch_heartbeat,
+)
 from .report import generate_result_card, load_result_artifact
 from .runner import run_experiment
 from .spec import load_research_spec
@@ -57,6 +63,24 @@ def main() -> int:
     record_parser.add_argument("--finding", action="append", default=[])
     record_parser.add_argument("--metric", action="append", default=[])
 
+    heartbeat_parser = subparsers.add_parser(
+        "heartbeat", help="Update a protocol task heartbeat"
+    )
+    heartbeat_parser.add_argument("task_dir", type=Path)
+    heartbeat_parser.add_argument("--source", default="heartbeat")
+
+    status_parser = subparsers.add_parser(
+        "task-status", help="Inspect protocol task liveness and stall state"
+    )
+    status_parser.add_argument("task_dir", type=Path)
+    status_parser.add_argument("--stale-after-seconds", type=float, default=7200)
+
+    patrol_parser = subparsers.add_parser(
+        "patrol-tasks", help="Inspect all protocol tasks under a directory"
+    )
+    patrol_parser.add_argument("root_dir", type=Path)
+    patrol_parser.add_argument("--stale-after-seconds", type=float, default=7200)
+
     args = parser.parse_args()
 
     if args.command_name == "detect-backends":
@@ -97,6 +121,25 @@ def main() -> int:
             metrics=_parse_metric_args(args.metric),
         )
         print(json.dumps(progress, indent=2, sort_keys=True))
+        return 0
+
+    if args.command_name == "heartbeat":
+        heartbeat = touch_heartbeat(args.task_dir, source=args.source)
+        print(json.dumps(heartbeat, indent=2, sort_keys=True))
+        return 0
+
+    if args.command_name == "task-status":
+        status = inspect_protocol_task(
+            args.task_dir, stale_after_seconds=args.stale_after_seconds
+        )
+        print(json.dumps(status, indent=2, sort_keys=True))
+        return 0
+
+    if args.command_name == "patrol-tasks":
+        report = patrol_protocol_tasks(
+            args.root_dir, stale_after_seconds=args.stale_after_seconds
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
         return 0
 
     if args.command_name == "run":

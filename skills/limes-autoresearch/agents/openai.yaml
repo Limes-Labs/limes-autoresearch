@@ -1,0 +1,4 @@
+interface:
+  display_name: "Limes AutoResearch"
+  short_description: "Run Limes research specs, protocol state, and result cards"
+  default_prompt: "Use Limes AutoResearch to create or inspect a reproducible research workflow."
