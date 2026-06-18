@@ -119,6 +119,32 @@ This creates `state/` and `logs/` files under the task directory, records tried 
 
 Heartbeat and patrol commands inspect liveness and append heartbeat log entries. They report allowed guardian actions (`liveness-check`, `nudge`, `restart`) but do not launch agents or modify task progress.
 
+## CLI Reference
+
+| Command | Purpose |
+| --- | --- |
+| `detect-backends` | Print optional CUDA, MPS, MLX, and CPU backend context. |
+| `run CONFIG --ledger PATH` | Run one experiment command and append a JSONL ledger record. |
+| `ledger --ledger PATH` | Print ledger records as formatted JSON. |
+| `validate-spec SPEC` | Validate and summarize a research-question spec. |
+| `adapter-template REPO --experiment NAME` | Print a lightweight config template for EuroBench, Parameter Golf, or nanoGPT. |
+| `report-card ARTIFACT --spec SPEC --out PATH` | Generate a markdown result card from JSON or JSONL output. |
+| `init-task SPEC --task-dir DIR` | Initialize persistent protocol state for a multi-iteration task. |
+| `record-iteration DIR --direction TEXT --finding TEXT --metric key=value` | Record an iteration, direction, findings, and metrics. |
+| `heartbeat DIR --source NAME` | Update heartbeat state and append the heartbeat log. |
+| `task-status DIR` | Inspect one task's progress, heartbeat, and recommended action. |
+| `patrol-tasks ROOT` | Inspect all protocol tasks under a directory. |
+
+## Repo Hygiene
+
+Generated run artifacts live under `runs/`, and Python bytecode caches are ignored. Before committing, run:
+
+```bash
+python3 -m unittest discover -s tests
+git diff --check
+git status --short
+```
+
 ### Example: PPO/GRPO Toy Study
 
 1. Copy `examples/ppo_grpo_research_spec.json` and update the split descriptions, cost cap, and promotion threshold.
