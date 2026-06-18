@@ -1,0 +1,31 @@
+{
+  "id": "short-stable-experiment-id",
+  "objective": "What decision should this experiment make?",
+  "hypothesis": "What do we expect to change, and why?",
+  "method": "Describe the bounded experiment, including seeds and fixed settings.",
+  "baselines": ["named-baseline", "control-if-practical"],
+  "metrics": [
+    {
+      "name": "primary_metric",
+      "direction": "higher",
+      "primary": true
+    }
+  ],
+  "costs": {
+    "max_runtime_minutes": 30,
+    "max_budget_eur": 2,
+    "hardware": "cpu"
+  },
+  "data_boundaries": {
+    "train": "Training or proposal data. Must be decided before heldout scoring.",
+    "validation": "Selection data used for iteration and candidate choice.",
+    "heldout": "Locked data used only for final scoring."
+  },
+  "promotion_gate": {
+    "metric": "primary_metric",
+    "threshold": 0.01,
+    "direction": "higher",
+    "requires_replay": true
+  },
+  "expected_artifact": "reports/short-stable-experiment-id.md"
+}

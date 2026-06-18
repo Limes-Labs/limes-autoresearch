@@ -12,6 +12,7 @@ Use the scaffold to wrap small nanoGPT-style experiments:
 - `val_bpb` or validation loss as primary metrics,
 - small model and tokenizer settings for local Mac iteration,
 - replay of promising changes on larger hardware.
+- explicit train/validation/heldout split descriptions before PPO, GRPO, OPD/OPSD, optimizer, or auxiliary-head claims.
 
 The Karpathy pattern is useful here because it keeps the mutable target narrow and the evaluation budget fixed.
 
@@ -23,6 +24,7 @@ Use the same ledger flow for European language and multilingual benchmark tasks:
 - metrics are parsed into JSONL,
 - backend and runtime context are recorded,
 - model or prompt changes can be compared over time.
+- heldout tasks stay locked until final scoring.
 
 EuroBench runs should include dataset version and language subset in future ledger fields.
 
@@ -35,6 +37,7 @@ Parameter Golf needs careful accounting of score, size, and constraints. The run
 - score,
 - disqualification reason,
 - replay command.
+- negative and diagnostic labels for ideas that improve one constraint while failing another.
 
 ### PPO And GRPO Experiments
 
@@ -46,6 +49,16 @@ The design should stay conservative:
 - compare against classical HPO baselines,
 - record failed and timed-out trials,
 - avoid using chat memory as the only optimization state.
+- charge critic, teacher, selector, and distillation costs when comparing PPO, GRPO, and OPD/OPSD-style methods.
+
+## Coordination Layer v0.2
+
+AutoResearch now has the minimum pieces needed to coordinate Limes experiments:
+
+- research-question specs in `docs/templates/research_question_spec.json`;
+- public no-cheating protocol templates in `docs/templates/no_cheating_protocol.md`;
+- adapter command templates for EuroBench, Parameter Golf, and nanoGPT;
+- markdown result cards with `candidate`, `negative`, `mixed`, `diagnostic`, and `verified` labels.
 
 ## Lessons From Related Work
 
