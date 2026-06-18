@@ -10,6 +10,7 @@ This file records the upstream projects inspected before implementation. The ini
 | autoresearch-macos | https://github.com/miolini/autoresearch-macos | `537c6e6d0ecf7d28f9d70ce20bb05d8c7ed9cfce` | README has a `License` section stating `MIT`; no standalone license file was present in the inspected checkout and GitHub API did not detect a license. | Concepts only: macOS/MPS support goals, CPU fallback, avoiding hard requirements on CUDA-only paths. No source code copied. |
 | autoresearch-mlx | https://github.com/trevin-creator/autoresearch-mlx | `ba6ebf6d3594c0f33dbf753fafa8cad96f41c6d8` | MIT License file present. Copyright notices name Andrej Karpathy and Trevin Peterson. GitHub API detected MIT. | Concepts only: optional MLX direction, JSON/TSV-style experiment history, Apple Silicon fixed-budget interpretation. No source code copied. |
 | andyluo7 AutoResearch | https://github.com/andyluo7/autoresearch | `c2c12b281c275850705031837e0f5712488a3982` | README has a `License` section stating `MIT`; no standalone license file was present in the inspected checkout and GitHub API did not detect a license. | Concepts only: portability interest beyond NVIDIA/CUDA. No source code copied. |
+| Deli_AutoResearch protocol | https://victorchen96.github.io/auto_research/framework.html | Website inspected 2026-06-18 | Public protocol page, not imported as code. | Concepts only: persistent state files, direction diversity, stall detection, guardian/worker log separation, and explicit limits. No text or source code copied. |
 
 ## License Compatibility Decision
 

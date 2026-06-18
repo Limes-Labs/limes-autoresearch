@@ -58,7 +58,9 @@ AutoResearch now has the minimum pieces needed to coordinate Limes experiments:
 - research-question specs in `docs/templates/research_question_spec.json`;
 - public no-cheating protocol templates in `docs/templates/no_cheating_protocol.md`;
 - adapter command templates for EuroBench, Parameter Golf, and nanoGPT;
-- markdown result cards with `candidate`, `negative`, `mixed`, `diagnostic`, and `verified` labels.
+- markdown result cards with `candidate`, `negative`, `mixed`, `diagnostic`, and `verified` labels;
+- protocol task state with direction tracking, stall detection, heartbeats, and patrol reports;
+- a repo-local `limes-autoresearch` Codex skill template for the workflow.
 
 ## Lessons From Related Work
 

@@ -9,6 +9,7 @@ This repository does not claim to autonomously discover frontier architectures. 
 - `autoresearch_limes/` - dependency-free runner, config loader, backend detector, and JSONL ledger helpers.
 - `examples/` - a tiny mock experiment that runs without GPU dependencies.
 - `docs/templates/` - public research-question, no-cheating, and result-artifact templates.
+- `skills/limes-autoresearch/` - repo-local Codex skill template for this workflow.
 - `tests/` - unit coverage for config loading, metric parsing, backend detection, and runner behavior.
 - `docs/architecture.md` - planner, experiment runner, evaluator, ledger, and backend boundaries.
 - `docs/research-agenda.md` - how this connects to Limes research tracks such as nanoGPT, EuroBench, Parameter Golf, PPO, and GRPO.
@@ -27,6 +28,7 @@ python3 -m autoresearch_limes detect-backends
 python3 -m autoresearch_limes run examples/mock_config.json --ledger runs/ledger.jsonl
 python3 -m autoresearch_limes ledger --ledger runs/ledger.jsonl
 python3 -m autoresearch_limes report-card runs/ledger.jsonl --out runs/mock-result-card.md
+python3 -m autoresearch_limes init-task examples/ppo_grpo_research_spec.json --task-dir runs/tasks/ppo-grpo-smoke
 ```
 
 The smoke experiment prints simple metrics, the runner captures them, and the ledger appends a JSONL record under `runs/ledger.jsonl`.
@@ -90,13 +92,58 @@ python3 -m autoresearch_limes adapter-template limes-parameter-golf --experiment
 python3 -m autoresearch_limes adapter-template limes-nanogpt --experiment grpo-smoke
 ```
 
-After a run, turn the JSONL ledger or a JSON result artifact into a markdown result card:
+After a run, turn the JSONL ledger or a JSON result artifact into a markdown result card. Add `--spec` when you want the card to evaluate the spec's promotion gate against the run metrics:
 
 ```bash
-python3 -m autoresearch_limes report-card runs/ledger.jsonl --out reports/my-result-card.md
+python3 -m autoresearch_limes report-card runs/ledger.jsonl --spec examples/ppo_grpo_research_spec.json --out reports/my-result-card.md
 ```
 
 Result cards use the status labels `candidate`, `negative`, `mixed`, `diagnostic`, and `verified`. `verified` should be reserved for replayed runs that satisfy the locked promotion gate.
+
+### Protocol Task State
+
+For longer research loops, initialize persistent task state from the same research spec:
+
+```bash
+python3 -m autoresearch_limes init-task examples/ppo_grpo_research_spec.json --task-dir runs/tasks/ppo-grpo-smoke
+python3 -m autoresearch_limes record-iteration runs/tasks/ppo-grpo-smoke \
+  --direction "try critic-shaped reward decomposition" \
+  --finding "validation traces expose delayed-credit failures" \
+  --metric heldout_reward=0.04
+python3 -m autoresearch_limes heartbeat runs/tasks/ppo-grpo-smoke --source local-loop
+python3 -m autoresearch_limes task-status runs/tasks/ppo-grpo-smoke
+python3 -m autoresearch_limes patrol-tasks runs/tasks
+```
+
+This creates `state/` and `logs/` files under the task directory, records tried directions, appends findings, and updates `stale_count`. A repeated direction is rejected. An iteration with no findings or a primary-metric regression is marked stale; two stale iterations request a structural pivot.
+
+Heartbeat and patrol commands inspect liveness and append heartbeat log entries. They report allowed guardian actions (`liveness-check`, `nudge`, `restart`) but do not launch agents or modify task progress.
+
+## CLI Reference
+
+| Command | Purpose |
+| --- | --- |
+| `detect-backends` | Print optional CUDA, MPS, MLX, and CPU backend context. |
+| `run CONFIG --ledger PATH` | Run one experiment command and append a JSONL ledger record. |
+| `ledger --ledger PATH` | Print ledger records as formatted JSON. |
+| `validate-spec SPEC` | Validate and summarize a research-question spec. |
+| `adapter-template REPO --experiment NAME` | Print a lightweight config template for EuroBench, Parameter Golf, or nanoGPT. |
+| `report-card ARTIFACT --spec SPEC --out PATH` | Generate a markdown result card from JSON or JSONL output. |
+| `init-task SPEC --task-dir DIR` | Initialize persistent protocol state for a multi-iteration task. |
+| `record-iteration DIR --direction TEXT --finding TEXT --metric key=value` | Record an iteration, direction, findings, and metrics. |
+| `heartbeat DIR --source NAME` | Update heartbeat state and append the heartbeat log. |
+| `task-status DIR` | Inspect one task's progress, heartbeat, and recommended action. |
+| `patrol-tasks ROOT` | Inspect all protocol tasks under a directory. |
+
+## Repo Hygiene
+
+Generated run artifacts live under `runs/`, and Python bytecode caches are ignored. Before committing, run:
+
+```bash
+python3 -m unittest discover -s tests
+git diff --check
+git status --short
+```
 
 ### Example: PPO/GRPO Toy Study
 
@@ -104,7 +151,8 @@ Result cards use the status labels `candidate`, `negative`, `mixed`, `diagnostic
 2. Validate the spec with `validate-spec`.
 3. Generate a repo adapter if the run targets EuroBench, Parameter Golf, or nanoGPT, or write a normal experiment config for a toy PPO/GRPO command.
 4. Run the experiment into a JSONL ledger.
-5. Generate a result card and publish the spec, ledger snippet, and card together.
+5. Record iteration state if the research loop continues beyond one run.
+6. Generate a spec-aware result card and publish the spec, ledger snippet, and card together.
 
 ## Attribution
 

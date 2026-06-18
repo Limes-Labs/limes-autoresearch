@@ -69,9 +69,27 @@ The ledger is append-only JSONL. Each record includes:
 
 This makes overnight runs inspectable without assuming a database. A future service can ingest the JSONL into SQLite, Postgres, DuckDB, or a dashboard without changing the local loop.
 
+### Protocol State
+
+`autoresearch_limes.protocol` adds a file-backed state layer for longer loops. It is inspired by Deli_AutoResearch-style protocol scaffolding, but narrowed to what this repo can enforce locally:
+
+- initialize a task directory from a research spec;
+- persist `state/progress.json`, `state/directions_tried.json`, `state/findings.jsonl`, and `state/iteration_log.jsonl`;
+- create separate `logs/work.jsonl`, `logs/orchestrator.jsonl`, and `logs/heartbeat.jsonl` streams for future tooling;
+- reject repeated directions;
+- increment `stale_count` when an iteration has no findings or the primary metric regresses;
+- request a structural pivot after two stale iterations.
+- update task heartbeats;
+- inspect one task's liveness;
+- patrol a directory of protocol tasks and report which ones need attention.
+
+This layer does not launch unattended agents or watchdogs. It gives humans, Codex threads, and future orchestrators a stable state contract. Patrol output is intentionally read-only with respect to task progress: it may append heartbeat patrol logs, but it does not edit findings, directions, or progress.
+
 ### Reports
 
-`autoresearch_limes.report.generate_result_card` converts a ledger record or JSON result artifact into a markdown card. The card records metrics, runtime context, promotion-gate status, and the artifact path. Status labels are:
+`autoresearch_limes.report.generate_result_card` converts a ledger record or JSON result artifact into a markdown card. The card records metrics, runtime context, promotion-gate status, and the artifact path. If a research spec is provided, the card includes the objective, expected artifact, and an automatic pass/fail evaluation of the spec's promotion gate.
+
+Status labels are:
 
 - `candidate` - worth replaying or comparing;
 - `negative` - did not beat the baseline or failed the gate;
@@ -105,4 +123,5 @@ The detector records context; it does not force the experiment command to use a 
 - A keep/revert policy that compares against a named baseline metric.
 - A replay command that reruns the current best on a clean checkout.
 - Richer ledgers with git commit, diff summary, seed, dataset, and benchmark version.
+- Optional automation hooks that call `patrol-tasks` on a schedule and route attention reports.
 - HPO integration where CMA-ES, TPE, or hybrid LLM policies propose bounded parameter changes.
