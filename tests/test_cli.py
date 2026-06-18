@@ -104,6 +104,66 @@ class CliTests(unittest.TestCase):
             self.assertEqual(str(out), completed.stdout.strip())
             self.assertIn("Status label: candidate", out.read_text(encoding="utf-8"))
 
+    def test_report_card_command_can_use_spec_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            record_path = Path(tmp) / "record.json"
+            spec_path = Path(tmp) / "spec.json"
+            out = Path(tmp) / "card.md"
+            record_path.write_text(
+                json.dumps(
+                    {
+                        "experiment": "parameter-golf-smoke",
+                        "status": "success",
+                        "metrics": {"score": 0.82},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            spec_path.write_text(
+                json.dumps(
+                    {
+                        "objective": "Test an efficiency candidate.",
+                        "hypothesis": "The candidate clears the score floor.",
+                        "method": "Run a fixed Parameter Golf benchmark.",
+                        "baselines": ["baseline-entry"],
+                        "metrics": [{"name": "score", "direction": "higher"}],
+                        "costs": {"max_runtime_minutes": 10},
+                        "data_boundaries": {
+                            "train": "training inputs",
+                            "validation": "public validation cases",
+                            "heldout": "locked final cases",
+                        },
+                        "promotion_gate": {
+                            "metric": "score",
+                            "threshold": 0.8,
+                            "direction": "higher",
+                        },
+                        "expected_artifact": "reports/parameter-golf-smoke.md",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "autoresearch_limes",
+                    "report-card",
+                    str(record_path),
+                    "--spec",
+                    str(spec_path),
+                    "--out",
+                    str(out),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn("Gate: passed", out.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

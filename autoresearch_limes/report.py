@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .ledger import read_ledger
+from .spec import ResearchSpec
 
 
 STATUS_LABELS = {"candidate", "negative", "mixed", "diagnostic", "verified"}
@@ -29,7 +30,9 @@ def load_result_artifact(path: str | Path) -> dict[str, Any]:
 
 
 def generate_result_card(
-    record: dict[str, Any], output_path: str | Path | None = None
+    record: dict[str, Any],
+    output_path: str | Path | None = None,
+    spec: ResearchSpec | None = None,
 ) -> str:
     label = str(record.get("result_label") or record.get("label") or "candidate")
     if label not in STATUS_LABELS:
@@ -37,7 +40,9 @@ def generate_result_card(
 
     experiment = str(record.get("experiment") or "unnamed-experiment")
     metrics = record.get("metrics") if isinstance(record.get("metrics"), dict) else {}
-    promotion_gate = record.get("promotion_gate")
+    promotion_gate = (
+        _gate_from_spec(record, spec) if spec is not None else record.get("promotion_gate")
+    )
     backend = record.get("backend") if isinstance(record.get("backend"), dict) else {}
 
     lines = [
@@ -46,6 +51,9 @@ def generate_result_card(
         f"Status label: {label}",
         f"Run status: {record.get('status', 'unknown')}",
     ]
+    if spec is not None:
+        lines.append(f"Research objective: {spec.objective}")
+        lines.append(f"Expected artifact: {spec.expected_artifact}")
     if "duration_seconds" in record:
         lines.append(f"Duration seconds: {record['duration_seconds']}")
     if backend.get("preferred"):
@@ -88,3 +96,22 @@ def _format_gate(value: Any) -> str:
     direction = value.get("direction", "unknown direction")
     threshold = value.get("threshold", "unknown threshold")
     return f"Gate: {status} ({metric} {direction} threshold {threshold})"
+
+
+def _gate_from_spec(record: dict[str, Any], spec: ResearchSpec) -> dict[str, Any]:
+    gate = spec.promotion_gate
+    metrics = record.get("metrics") if isinstance(record.get("metrics"), dict) else {}
+    value = metrics.get(gate.metric)
+    passed = None
+    if isinstance(value, int | float):
+        if gate.direction == "higher":
+            passed = float(value) >= gate.threshold
+        else:
+            passed = float(value) <= gate.threshold
+
+    return {
+        "metric": gate.metric,
+        "direction": gate.direction,
+        "threshold": gate.threshold,
+        "passed": passed,
+    }

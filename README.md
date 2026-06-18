@@ -90,10 +90,10 @@ python3 -m autoresearch_limes adapter-template limes-parameter-golf --experiment
 python3 -m autoresearch_limes adapter-template limes-nanogpt --experiment grpo-smoke
 ```
 
-After a run, turn the JSONL ledger or a JSON result artifact into a markdown result card:
+After a run, turn the JSONL ledger or a JSON result artifact into a markdown result card. Add `--spec` when you want the card to evaluate the spec's promotion gate against the run metrics:
 
 ```bash
-python3 -m autoresearch_limes report-card runs/ledger.jsonl --out reports/my-result-card.md
+python3 -m autoresearch_limes report-card runs/ledger.jsonl --spec examples/ppo_grpo_research_spec.json --out reports/my-result-card.md
 ```
 
 Result cards use the status labels `candidate`, `negative`, `mixed`, `diagnostic`, and `verified`. `verified` should be reserved for replayed runs that satisfy the locked promotion gate.
@@ -104,7 +104,7 @@ Result cards use the status labels `candidate`, `negative`, `mixed`, `diagnostic
 2. Validate the spec with `validate-spec`.
 3. Generate a repo adapter if the run targets EuroBench, Parameter Golf, or nanoGPT, or write a normal experiment config for a toy PPO/GRPO command.
 4. Run the experiment into a JSONL ledger.
-5. Generate a result card and publish the spec, ledger snippet, and card together.
+5. Generate a spec-aware result card and publish the spec, ledger snippet, and card together.
 
 ## Attribution
 

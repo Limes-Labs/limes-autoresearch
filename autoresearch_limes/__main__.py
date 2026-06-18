@@ -39,6 +39,7 @@ def main() -> int:
         "report-card", help="Generate a markdown result card from a result artifact"
     )
     report_parser.add_argument("artifact", type=Path)
+    report_parser.add_argument("--spec", type=Path)
     report_parser.add_argument("--out", type=Path)
 
     args = parser.parse_args()
@@ -63,7 +64,8 @@ def main() -> int:
 
     if args.command_name == "report-card":
         record = load_result_artifact(args.artifact)
-        card = generate_result_card(record, args.out)
+        spec = load_research_spec(args.spec) if args.spec is not None else None
+        card = generate_result_card(record, args.out, spec=spec)
         print(str(args.out) if args.out is not None else card)
         return 0
 

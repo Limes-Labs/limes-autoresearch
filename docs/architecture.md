@@ -71,7 +71,9 @@ This makes overnight runs inspectable without assuming a database. A future serv
 
 ### Reports
 
-`autoresearch_limes.report.generate_result_card` converts a ledger record or JSON result artifact into a markdown card. The card records metrics, runtime context, promotion-gate status, and the artifact path. Status labels are:
+`autoresearch_limes.report.generate_result_card` converts a ledger record or JSON result artifact into a markdown card. The card records metrics, runtime context, promotion-gate status, and the artifact path. If a research spec is provided, the card includes the objective, expected artifact, and an automatic pass/fail evaluation of the spec's promotion gate.
+
+Status labels are:
 
 - `candidate` - worth replaying or comparing;
 - `negative` - did not beat the baseline or failed the gate;
